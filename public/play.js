@@ -2,7 +2,11 @@
   const STORAGE_KEY = 'raffle_player_profile_v1';
 
   // DOM References
+  const fxCanvas = document.getElementById('playerFxCanvas');
+  const fxCtx = fxCanvas.getContext('2d');
+
   const myProfileBadge = document.getElementById('myProfileBadge');
+  const feverBadge = document.getElementById('feverBadge');
   const editProfileBtn = document.getElementById('editProfileBtn');
   const playerSoundBtn = document.getElementById('playerSoundBtn');
 
@@ -19,10 +23,18 @@
   const statusCard = document.getElementById('statusCard');
   const phasePill = document.getElementById('phasePill');
   const playerTimer = document.getElementById('playerTimer');
+  const playerTimerMobile = document.getElementById('playerTimerMobile');
   const scoreCaption = document.getElementById('scoreCaption');
   const myScoreNum = document.getElementById('myScoreNum');
   const myRankLine = document.getElementById('myRankLine');
   const guideHintLine = document.getElementById('guideHintLine');
+
+  const miniGourdBall = document.getElementById('miniGourdBall');
+  const feverLevelText = document.getElementById('feverLevelText');
+  const blueCheerWing = document.getElementById('blueCheerWing');
+  const whiteCheerWing = document.getElementById('whiteCheerWing');
+  const blueBubble = document.getElementById('blueBubble');
+  const whiteBubble = document.getElementById('whiteBubble');
 
   const leftPadBtn = document.getElementById('leftPadBtn');
   const rightPadBtn = document.getElementById('rightPadBtn');
@@ -43,6 +55,13 @@
   const playerCountdownNum = document.getElementById('playerCountdownNum');
   const toastMsg = document.getElementById('toastMsg');
 
+  // Cheer Chants by Fever Tier
+  const BLUE_CHANTS_BASE = ['영차! 💙', '청군 파이팅!', '잘한다!!', '힘차게 휙!', '가즈아! ◀'];
+  const WHITE_CHANTS_BASE = ['으랏차! 🤍', '백군 파이팅!', '나이스!!', '좋아요 휙!', '최고다! ▶'];
+  const CHANTS_FEVER_1 = ['열정 폭발! 🔥', '손놀림 번개! ⚡', '기세 최고!!', '선생님 멋져요!'];
+  const CHANTS_FEVER_2 = ['초고속 질주!! 🔥🔥', '우승 예감!! 🏆', '못 말린다!! ⚡', '박 갈라진다!!'];
+  const CHANTS_FEVER_3 = ['전설의 타격!! 👑', '신기록 탄생!! 🎉', '완전 대박!! 💥', '교장·교감쌤 최고!! 🏆'];
+
   // Local State
   let profile = loadSavedProfile();
   let selectedGroup = profile.group || 1;
@@ -62,8 +81,235 @@
   let lastAcceptedSide = null; // 'left' | 'right' | null
   let eventSource = null;
   let toastTimer = null;
+  let bluePopTimer = null;
+  let whitePopTimer = null;
+  let gourdPopTimer = null;
   let celebratedWinKey = '';
+  let blueChantIdx = 0;
+  let whiteChantIdx = 0;
 
+  // ------------------------------------------------------------
+  // Canvas FX: Flying Beanbags from Cheer Squads -> Mini Gourd + Fever Sparks
+  // ------------------------------------------------------------
+  const flyingBags = [];
+  const sparks = [];
+
+  function resizeFxCanvas() {
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeFxCanvas);
+  resizeFxCanvas();
+
+  function launchCheerBeanbag(side, feverTier) {
+    const wingEl = side === 'left' ? blueCheerWing : whiteCheerWing;
+    const gourdEl = miniGourdBall;
+    if (!wingEl || !gourdEl) return;
+
+    const wRect = wingEl.getBoundingClientRect();
+    const gRect = gourdEl.getBoundingClientRect();
+    if (wRect.width === 0 || gRect.width === 0) return;
+
+    const sx = wRect.left + wRect.width * 0.5 + (Math.random() - 0.5) * 30;
+    const sy = wRect.top + wRect.height * 0.48;
+    const tx = gRect.left + gRect.width * 0.5 + (Math.random() - 0.5) * 16;
+    const ty = gRect.top + gRect.height * 0.5 + (Math.random() - 0.5) * 12;
+
+    flyingBags.push({
+      sx,
+      sy,
+      tx,
+      ty,
+      t: 0,
+      speed: 0.085 + Math.random() * 0.025,
+      side,
+      feverTier
+    });
+
+    // Spawn extra cheer sparks around the cheering squad during Fever!
+    if (feverTier >= 1) {
+      const sparkCount = feverTier * 4;
+      const colors = feverTier >= 3
+        ? ['#fde047', '#f59e0b', '#f43f5e', '#38bdf8', '#a855f7']
+        : feverTier === 2
+        ? ['#fbbf24', '#f97316', '#ef4444']
+        : ['#60a5fa', '#fde047', '#ffffff'];
+
+      for (let i = 0; i < sparkCount; i++) {
+        sparks.push({
+          x: sx + (Math.random() - 0.5) * 90,
+          y: sy + (Math.random() - 0.5) * 60,
+          vx: (Math.random() - 0.5) * 6,
+          vy: -2.5 - Math.random() * 4.5,
+          r: 3 + Math.random() * 4,
+          color: colors[i % colors.length],
+          life: 1
+        });
+      }
+    }
+  }
+
+  function spawnMiniGourdImpact(x, y, side, feverTier) {
+    miniGourdBall.classList.add('hit-pop');
+    if (gourdPopTimer) clearTimeout(gourdPopTimer);
+    gourdPopTimer = setTimeout(() => miniGourdBall.classList.remove('hit-pop'), 90);
+
+    const count = 4 + feverTier * 2;
+    for (let i = 0; i < count; i++) {
+      const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+      const spd = 2 + Math.random() * 3.5;
+      sparks.push({
+        x,
+        y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd,
+        r: 2.5 + Math.random() * 3,
+        color: feverTier >= 2 ? '#fbbf24' : side === 'left' ? '#60a5fa' : '#ffffff',
+        life: 0.9
+      });
+    }
+  }
+
+  function getFeverTier(score) {
+    if (score >= 90) return 3;
+    if (score >= 60) return 2;
+    if (score >= 30) return 1;
+    return 0;
+  }
+
+  function applyFeverVisuals(score) {
+    const tier = getFeverTier(score);
+    [blueCheerWing, whiteCheerWing].forEach(w => {
+      if (!w) return;
+      w.classList.toggle('fever-1', tier === 1);
+      w.classList.toggle('fever-2', tier === 2);
+      w.classList.toggle('fever-3', tier >= 3);
+    });
+
+    document.body.classList.toggle('fever-lv2', tier === 2);
+    document.body.classList.toggle('fever-lv3', tier >= 3);
+
+    if (tier === 0) {
+      feverBadge.classList.add('hidden');
+      feverLevelText.textContent = '박을 맞춰라!';
+    } else if (tier === 1) {
+      feverBadge.classList.remove('hidden');
+      feverBadge.textContent = '🔥 FEVER Lv.1';
+      feverLevelText.textContent = '🔥 열정 점화!';
+    } else if (tier === 2) {
+      feverBadge.classList.remove('hidden');
+      feverBadge.textContent = '🔥🔥 FEVER Lv.2';
+      feverLevelText.textContent = '⚡ 초고속 질주!';
+    } else {
+      feverBadge.classList.remove('hidden');
+      feverBadge.textContent = '👑 MAX FEVER!!';
+      feverLevelText.textContent = '👑 전설의 손놀림!';
+    }
+  }
+
+  function triggerCheerReaction(side, currentCount) {
+    const tier = getFeverTier(currentCount);
+    let chant = '';
+
+    if (tier === 3) {
+      chant = CHANTS_FEVER_3[currentCount % CHANTS_FEVER_3.length];
+    } else if (tier === 2) {
+      chant = CHANTS_FEVER_2[currentCount % CHANTS_FEVER_2.length];
+    } else if (tier === 1 && currentCount % 2 === 0) {
+      chant = CHANTS_FEVER_1[(currentCount >> 1) % CHANTS_FEVER_1.length];
+    } else if (side === 'left') {
+      chant = BLUE_CHANTS_BASE[blueChantIdx++ % BLUE_CHANTS_BASE.length];
+    } else {
+      chant = WHITE_CHANTS_BASE[whiteChantIdx++ % WHITE_CHANTS_BASE.length];
+    }
+
+    if (side === 'left') {
+      blueBubble.textContent = chant;
+      blueCheerWing.classList.add('cheer-pop');
+      if (bluePopTimer) clearTimeout(bluePopTimer);
+      bluePopTimer = setTimeout(() => blueCheerWing.classList.remove('cheer-pop'), 145);
+    } else {
+      whiteBubble.textContent = chant;
+      whiteCheerWing.classList.add('cheer-pop');
+      if (whitePopTimer) clearTimeout(whitePopTimer);
+      whitePopTimer = setTimeout(() => whiteCheerWing.classList.remove('cheer-pop'), 145);
+    }
+
+    applyFeverVisuals(currentCount);
+    launchCheerBeanbag(side, tier);
+  }
+
+  function resetCheerState() {
+    applyFeverVisuals(0);
+    blueBubble.textContent = '청군 준비 완료!';
+    whiteBubble.textContent = '백군 준비 완료!';
+    blueCheerWing.classList.remove('cheer-pop');
+    whiteCheerWing.classList.remove('cheer-pop');
+  }
+
+  // Unified Animation Loop (FX Canvas + Live Countdown/Timer)
+  function animationFrameLoop() {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+
+    // Draw flying beanbags
+    for (let i = flyingBags.length - 1; i >= 0; i--) {
+      const b = flyingBags[i];
+      b.t += b.speed;
+      if (b.t >= 1) {
+        spawnMiniGourdImpact(b.tx, b.ty, b.side, b.feverTier);
+        flyingBags.splice(i, 1);
+        continue;
+      }
+
+      const x = b.sx + (b.tx - b.sx) * b.t;
+      const arc = Math.sin(b.t * Math.PI) * 75;
+      const y = b.sy + (b.ty - b.sy) * b.t - arc;
+
+      fxCtx.save();
+      // Golden trail in Fever mode
+      if (b.feverTier >= 1) {
+        fxCtx.beginPath();
+        fxCtx.arc(x, y, 13, 0, Math.PI * 2);
+        fxCtx.fillStyle = b.feverTier >= 2 ? 'rgba(251, 191, 36, 0.45)' : 'rgba(96, 165, 250, 0.35)';
+        fxCtx.fill();
+      }
+      fxCtx.beginPath();
+      fxCtx.arc(x, y, 9, 0, Math.PI * 2);
+      fxCtx.fillStyle = b.side === 'left' ? '#3b82f6' : '#ffffff';
+      fxCtx.fill();
+      fxCtx.lineWidth = 2.5;
+      fxCtx.strokeStyle = b.feverTier >= 2 ? '#f59e0b' : b.side === 'left' ? '#1e3a8a' : '#e11d48';
+      fxCtx.stroke();
+      fxCtx.restore();
+    }
+
+    // Draw sparks
+    for (let i = sparks.length - 1; i >= 0; i--) {
+      const s = sparks[i];
+      s.x += s.vx;
+      s.y += s.vy;
+      s.vy += 0.14;
+      s.life -= 0.045;
+      if (s.life <= 0) {
+        sparks.splice(i, 1);
+        continue;
+      }
+      fxCtx.save();
+      fxCtx.globalAlpha = Math.max(0, s.life);
+      fxCtx.beginPath();
+      fxCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      fxCtx.fillStyle = s.color;
+      fxCtx.fill();
+      fxCtx.restore();
+    }
+
+    tickPlayerTimer();
+    requestAnimationFrame(animationFrameLoop);
+  }
+
+  // ------------------------------------------------------------
+  // Profile Storage & Group Selector
+  // ------------------------------------------------------------
   function loadSavedProfile() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -82,12 +328,9 @@
     toastMsg.textContent = msg;
     toastMsg.classList.remove('hidden');
     if (toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => toastMsg.classList.add('hidden'), 1500);
+    toastTimer = setTimeout(() => toastMsg.classList.add('hidden'), 1400);
   }
 
-  // ------------------------------------------------------------
-  // Group Choice Grid Rendering
-  // ------------------------------------------------------------
   function renderGroupButtons(count) {
     if (selectedGroup > count) selectedGroup = 1;
     renderedGroupCount = count;
@@ -108,7 +351,6 @@
   }
   renderGroupButtons(24);
 
-  // Prefill inputs
   if (profile.school) schoolInput.value = profile.school;
   if (profile.name) nameInput.value = profile.name;
 
@@ -219,7 +461,6 @@
 
     const strict = latestSnap.config.strictAlternating;
     if (strict && lastAcceptedSide === side) {
-      // Gently remind to alternate without freezing
       showToast(side === 'left' ? '이제 오른쪽(▶)을 눌러주세요!' : '이제 왼쪽(◀)을 눌러주세요!');
       return;
     }
@@ -234,13 +475,14 @@
     if (latestSnap.phase === 'lobby') {
       practiceScore++;
       myScoreNum.textContent = practiceScore;
+      triggerCheerReaction(side, practiceScore);
     } else if (latestSnap.phase === 'playing') {
       liveScore++;
       myScoreNum.textContent = liveScore;
+      triggerCheerReaction(side, liveScore);
     }
   }
 
-  // Keyboard listener for Laptops (← / → or A / D, blocking key-hold auto-repeat!)
   window.addEventListener('keydown', e => {
     if (!joinedServer || editingProfile) return;
     if (document.activeElement && ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
@@ -262,7 +504,6 @@
     }
   });
 
-  // Pointerdown for instantaneous multi-touch on smartphones & mouse clicks on laptops
   leftPadBtn.addEventListener('pointerdown', e => {
     e.preventDefault();
     handleActionInput('left');
@@ -272,13 +513,12 @@
     handleActionInput('right');
   });
 
-  // Prevent double-tap zoom on iOS/Android
   document.addEventListener('dblclick', e => {
     if (joinedServer && !editingProfile) e.preventDefault();
   }, { passive: false });
 
   // ------------------------------------------------------------
-  // Throttled Score Sync to Server (Every 150ms when dirty)
+  // Guaranteed Score Sync to Server
   // ------------------------------------------------------------
   async function flushScoreToServer() {
     if (!profile.playerId || liveScore <= lastSyncedScore || syncInFlight) return;
@@ -300,10 +540,9 @@
         lastSyncedScore = Math.max(lastSyncedScore, data.score || targetScore);
       }
     } catch (_) {
-      // Will retry on next interval
+      // Retry automatically
     } finally {
       syncInFlight = false;
-      // If more taps accumulated while fetch was in flight, flush immediately
       if (liveScore > lastSyncedScore && latestSnap && (latestSnap.phase === 'playing' || latestSnap.phase === 'settling')) {
         flushScoreToServer();
       }
@@ -312,38 +551,42 @@
 
   setInterval(flushScoreToServer, 120);
 
-  // Live timer animation loop on player screen
-  function tickPlayerTimer() {
-    if (latestSnap) {
-      const now = Date.now() + serverClockOffset;
-      if (latestSnap.phase === 'countdown') {
-        playerCountdown.classList.remove('hidden');
-        const rem = latestSnap.gameStartAt - now;
-        if (rem > 2100) playerCountdownNum.textContent = '3';
-        else if (rem > 1100) playerCountdownNum.textContent = '2';
-        else if (rem > 200) playerCountdownNum.textContent = '1';
-        else playerCountdownNum.textContent = '출발!';
-      } else {
-        playerCountdown.classList.add('hidden');
-      }
-
-      if (latestSnap.phase === 'playing') {
-        const remMs = Math.max(0, latestSnap.gameEndAt - now);
-        playerTimer.textContent = `남은 시간 ${(remMs / 1000).toFixed(1)}초`;
-        if (remMs === 0 && !flushedAtEnd) {
-          flushedAtEnd = true;
-          flushScoreToServer();
-        }
-      } else if (latestSnap.phase === 'settling') {
-        playerTimer.textContent = '최종 기록 집계 중...';
-        flushScoreToServer();
-      } else if (latestSnap.phase === 'lobby') {
-        playerTimer.textContent = '시작 대기 중';
-      }
-    }
-    requestAnimationFrame(tickPlayerTimer);
+  function setTimerTexts(txt) {
+    playerTimer.textContent = txt;
+    if (playerTimerMobile) playerTimerMobile.textContent = txt;
   }
-  requestAnimationFrame(tickPlayerTimer);
+
+  function tickPlayerTimer() {
+    if (!latestSnap) return;
+    const now = Date.now() + serverClockOffset;
+    if (latestSnap.phase === 'countdown') {
+      playerCountdown.classList.remove('hidden');
+      const rem = latestSnap.gameStartAt - now;
+      if (rem > 2100) playerCountdownNum.textContent = '3';
+      else if (rem > 1100) playerCountdownNum.textContent = '2';
+      else if (rem > 200) playerCountdownNum.textContent = '1';
+      else playerCountdownNum.textContent = '출발!';
+    } else {
+      playerCountdown.classList.add('hidden');
+    }
+
+    if (latestSnap.phase === 'playing') {
+      const remMs = Math.max(0, latestSnap.gameEndAt - now);
+      setTimerTexts(`남은 시간 ${(remMs / 1000).toFixed(1)}초`);
+      if (remMs === 0 && !flushedAtEnd) {
+        flushedAtEnd = true;
+        flushScoreToServer();
+      }
+    } else if (latestSnap.phase === 'settling') {
+      setTimerTexts('최종 기록 집계 중...');
+      flushScoreToServer();
+    } else if (latestSnap.phase === 'lobby') {
+      setTimerTexts('시작 대기 중');
+    }
+  }
+
+  // Start unified loop
+  requestAnimationFrame(animationFrameLoop);
 
   // ------------------------------------------------------------
   // View Updates from Server State
@@ -353,7 +596,6 @@
     const c = latestSnap.config;
     const isGroup = c.mode === 'group';
 
-    // Update join form dynamic elements
     groupSelectSection.classList.toggle('hidden', !isGroup);
     joinModeDesc.textContent = isGroup
       ? '앉아 계신 조를 선택하고 성함을 입력해 주세요.'
@@ -363,7 +605,6 @@
       renderGroupButtons(c.groupCount);
     }
 
-    // Check ifserver cleared players (e.g. kick_all)
     if (joinedServer && !latestSnap.me) {
       joinedServer = false;
     }
@@ -376,6 +617,8 @@
     if (showJoin) {
       arenaView.classList.add('hidden');
       resultView.classList.add('hidden');
+      feverBadge.classList.add('hidden');
+      document.body.classList.remove('fever-lv2', 'fever-lv3');
       return;
     }
 
@@ -386,6 +629,8 @@
     if (latestSnap.phase === 'ended') {
       arenaView.classList.add('hidden');
       resultView.classList.remove('hidden');
+      feverBadge.classList.add('hidden');
+      document.body.classList.remove('fever-lv2', 'fever-lv3');
       renderResultScreen(latestSnap, me);
     } else {
       resultView.classList.add('hidden');
@@ -407,7 +652,7 @@
           ? `${me.group}조 입장 완료! 사회자 시작 신호를 기다려 주세요.`
           : `개인전 입장 완료! 사회자 시작 신호를 기다려 주세요.`;
       guideHintLine.innerHTML =
-        '노트북은 <strong>◀ · ▶ 방향키</strong>, 휴대폰은 <strong>아래 청·백 버튼</strong>을 번갈아 눌러 연습해 보세요!';
+        '노트북 <strong>◀ · ▶ 방향키</strong>나 화면 버튼을 눌러 좌·우 응원단과 함께 연습해 보세요!';
     } else {
       phasePill.textContent = snap.phase === 'settling' ? '⏳ 최종 기록 집계 중...' : '🔥 본 경기 진행 중! 박을 터뜨려라!';
       scoreCaption.textContent = '내 타격';
@@ -417,7 +662,7 @@
       if (snap.config.mode === 'group') {
         const rankTxt = me.myRank ? `현재 우리 ${me.group}조 ${me.myRank}위` : `${me.group}조 응원 참여 중`;
         myRankLine.textContent = `${rankTxt} (조 합산 ${me.myGroupScore}타)`;
-        guideHintLine.innerHTML = `각 조 상위 ${snap.config.topN}명 기록 합산! 끝까지 힘차게 눌러주세요!`;
+        guideHintLine.innerHTML = `각 조 상위 ${snap.config.topN}명 기록 합산! 응원단과 함께 힘차게 눌러주세요!`;
       } else {
         const rankTxt = me.myRank ? `현재 개인 ${me.myRank}위` : '열정 참여 중';
         const goalTxt =
@@ -433,7 +678,6 @@
   function renderResultScreen(snap, me) {
     const res = snap.resultSummary;
     const fullName = me.school ? `${me.school} ${me.name}` : me.name;
-    // Use authoritative server score so player screen & projector screen always match 100%
     const finalScore = me.score !== undefined ? me.score : liveScore;
     liveScore = finalScore;
 
@@ -484,13 +728,13 @@
       const snap = JSON.parse(ev.data);
       serverClockOffset = snap.serverNow - Date.now();
 
-      // Phase transition resets
       if (lastPhase !== snap.phase) {
         if (snap.phase === 'countdown') {
           liveScore = 0;
           lastSyncedScore = 0;
           flushedAtEnd = false;
           lastAcceptedSide = null;
+          resetCheerState();
           updateNextCueUI();
         } else if (snap.phase === 'lobby') {
           practiceScore = 0;
@@ -498,6 +742,7 @@
           lastSyncedScore = 0;
           flushedAtEnd = false;
           lastAcceptedSide = null;
+          resetCheerState();
           updateNextCueUI();
         } else if (snap.phase === 'settling') {
           flushScoreToServer();
@@ -510,10 +755,8 @@
     });
   }
 
-  // Initial connect (and auto-rejoin if profile saved!)
   connectSse();
   if (profile.name && profile.playerId) {
     submitJoin(true);
   }
 })();
-
