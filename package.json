@@ -1,7 +1,7 @@
 {
   "name": "sports-day-raffle",
   "version": "1.0.0",
-  "description": "교장·교감 선생님 연수용 실시간 청백 운동회 박 터뜨리기 경품 추첨 웹앱 (조별전/개인전 겸용)",
+  "description": "실시간 참여형 청백 운동회 박 터뜨리기 경품 추첨 웹앱 (조별전/개인전 겸용)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
