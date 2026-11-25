@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>청백 운동회 박 터뜨리기 - 참가하기</title>
+  <link rel="stylesheet" href="/play.css" />
+</head>
+<body>
+  <!-- Top Player Status Bar -->
+  <header class="player-header">
+    <div class="header-left">
+      <span class="badge-festival">🎊 운동회 추첨</span>
+      <span id="myProfileBadge" class="profile-badge hidden"></span>
+    </div>
+    <div class="header-right">
+      <button type="button" id="editProfileBtn" class="btn-header hidden">조/이름 변경</button>
+      <button type="button" id="playerSoundBtn" class="btn-header">🔊</button>
+    </div>
+  </header>
+
+  <!-- STEP 1: JOIN SCREEN -->
+  <main id="joinView" class="join-view">
+    <div class="join-box">
+      <h1 class="join-title">청백 운동회 박 터뜨리기</h1>
+      <p class="join-subtitle" id="joinModeDesc">앉아 계신 조를 선택하고 성함을 입력해 주세요.</p>
+
+      <!-- Group Selector (Shown in Group Mode) -->
+      <div id="groupSelectSection" class="form-block">
+        <label class="block-label">1. 소속 조 선택 <span class="req">(터치/클릭)</span></label>
+        <div id="groupButtonsGrid" class="group-btn-grid"></div>
+      </div>
+
+      <!-- School & Name Inputs -->
+      <div class="form-row">
+        <div class="form-block">
+          <label class="block-label" for="schoolInput">소속 학교명 <span class="opt">(선택)</span></label>
+          <input type="text" id="schoolInput" class="big-input" placeholder="예: 한빛초" maxlength="20" autocomplete="organization" />
+        </div>
+        <div class="form-block">
+          <label class="block-label" for="nameInput">선생님 성함 <span class="req">(필수)</span></label>
+          <input type="text" id="nameInput" class="big-input" placeholder="예: 홍길동" maxlength="20" autocomplete="name" />
+        </div>
+      </div>
+
+      <p id="joinErrorMsg" class="error-msg hidden"></p>
+      <button type="button" id="submitJoinBtn" class="btn-join-submit">입장하기 ▶</button>
+    </div>
+  </main>
+
+  <!-- STEP 2 & 3: PRACTICE + LIVE ARENA VIEW -->
+  <main id="arenaView" class="arena-view hidden">
+    <!-- Status Banner -->
+    <div class="status-card" id="statusCard">
+      <div class="status-top">
+        <span class="phase-pill" id="phasePill">손 풀기 연습 중</span>
+        <span class="timer-display" id="playerTimer">대기 중</span>
+      </div>
+
+      <div class="score-zone">
+        <div class="my-score-wrap">
+          <span class="score-caption" id="scoreCaption">연습 터치 횟수</span>
+          <strong class="my-score-num" id="myScoreNum">0</strong><span class="score-unit">타</span>
+        </div>
+        <div class="team-stat-wrap" id="teamStatWrap">
+          <div class="stat-line" id="myRankLine">사회자의 시작 신호를 기다려 주세요!</div>
+          <div class="stat-sub" id="guideHintLine">노트북은 키보드 <strong>◀ · ▶ 방향키</strong>를, 휴대폰은 아래 버튼을 번갈아 눌러보세요!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Giant Two-Button / Arrow-Key Interactive Pad -->
+    <div class="pad-container" id="padContainer">
+      <button type="button" id="leftPadBtn" class="pad-btn blue-pad next-cue" aria-label="왼쪽 청군 버튼">
+        <span class="pad-team">청 군</span>
+        <span class="pad-arrow">◀</span>
+        <span class="pad-key-hint">키보드 왼쪽(←) 키<br/>또는 화면 터치</span>
+      </button>
+
+      <button type="button" id="rightPadBtn" class="pad-btn white-pad" aria-label="오른쪽 백군 버튼">
+        <span class="pad-team">백 군</span>
+        <span class="pad-arrow">▶</span>
+        <span class="pad-key-hint">키보드 오른쪽(→) 키<br/>또는 화면 터치</span>
+      </button>
+    </div>
+  </main>
+
+  <!-- STEP 4: ROUND RESULT / GOLDEN WINNER CERTIFICATE -->
+  <section id="resultView" class="result-view hidden">
+    <!-- Winner Certificate -->
+    <div id="winnerCertCard" class="cert-card winner hidden">
+      <div class="cert-ribbon">🏆 경 품 당 첨 확 인 증 🏆</div>
+      <div class="cert-prize" id="certPrizeTitle">제1라운드 특별 경품</div>
+      <h2 class="cert-congrats">축하합니다! 당첨되셨습니다!</h2>
+      <div class="cert-user-box">
+        <div class="cert-group" id="certUserGroup">1조 전원 당첨</div>
+        <div class="cert-name" id="certUserName">한빛초 홍길동 선생님</div>
+      </div>
+      <p class="cert-footer">이 화면을 진행 요원에게 보여주시거나 다음 안내를 기다려 주세요!</p>
+      <div class="my-final-record" id="winnerMyRecord">내 타격 기록: 0타</div>
+    </div>
+
+    <!-- Non-Winner Friendly Summary -->
+    <div id="nonWinnerCard" class="cert-card normal hidden">
+      <div class="normal-badge" id="normalPrizeTitle">제1라운드 결과 발표</div>
+      <h2 class="normal-headline">열정적인 참여 감사합니다! 👏</h2>
+      <p class="normal-winner-announce" id="normalWinnerAnnounce">우승 발표 중...</p>
+      <div class="normal-stats" id="normalMyStats">내 기록: 0타</div>
+      <p class="normal-wait-hint">잠시 후 다음 라운드가 시작되면 화면이 자동으로 전환됩니다.</p>
+    </div>
+  </section>
+
+  <!-- Countdown Modal on Player Device -->
+  <div id="playerCountdown" class="player-countdown hidden">
+    <div class="p-cd-label">준비하세요! 번갈아 누르기!</div>
+    <div class="p-cd-num" id="playerCountdownNum">3</div>
+  </div>
+
+  <!-- Gentle Toast Notice -->
+  <div id="toastMsg" class="toast hidden"></div>
+
+  <script src="/sound.js"></script>
+  <script src="/play.js"></script>
+</body>
+</html>
+

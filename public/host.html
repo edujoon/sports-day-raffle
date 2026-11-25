@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>청백 운동회 박 터뜨리기 - 사회자 전광판</title>
+  <link rel="stylesheet" href="/host.css" />
+</head>
+<body>
+  <!-- Confetti & Flying Beanbags Canvas -->
+  <canvas id="fxCanvas"></canvas>
+
+  <!-- Festive Sports Day Bunting Garland (만국기) -->
+  <div class="bunting-bar" aria-hidden="true">
+    <div class="bunting-flags" id="buntingFlags"></div>
+  </div>
+
+  <!-- Top Host Control Header -->
+  <header class="host-topbar">
+    <div class="brand-area">
+      <span class="round-badge" id="roundBadge">1라운드</span>
+      <input type="text" id="prizeTitleInput" class="prize-input" value="제1라운드 특별 경품" title="클릭하여 경품명 수정" />
+    </div>
+
+    <div class="quick-controls">
+      <div class="mode-switch" role="group" aria-label="경기 방식 선택">
+        <button type="button" id="modeGroupBtn" class="mode-btn active">조별전 (상위N합산)</button>
+        <button type="button" id="modeIndivBtn" class="mode-btn">개인전</button>
+      </div>
+
+      <label class="ctrl-chip" id="groupCountWrap">
+        <span>총 조</span>
+        <input type="number" id="groupCountInput" min="2" max="40" value="24" />
+        <span>조</span>
+      </label>
+
+      <label class="ctrl-chip highlight-chip" id="topNWrap" title="각 조에서 가장 기록이 높은 상위 N명의 점수만 합산합니다">
+        <span>합산 상위</span>
+        <input type="number" id="topNInput" min="1" max="30" value="5" />
+        <span>명</span>
+      </label>
+
+      <label class="ctrl-chip hidden" id="indivModeWrap">
+        <span>방식</span>
+        <select id="indivSelectionSelect">
+          <option value="rank">기록 순위 시상</option>
+          <option value="raffle">완주자 랜덤추첨</option>
+        </select>
+      </label>
+
+      <label class="ctrl-chip hidden" id="targetTouchesWrap" title="개인전 완주 기준 타수">
+        <span>완주 기준</span>
+        <input type="number" id="targetTouchesInput" min="5" max="200" value="25" />
+        <span>타</span>
+      </label>
+
+      <label class="ctrl-chip">
+        <span>당첨</span>
+        <input type="number" id="winnerCountInput" min="1" max="20" value="1" />
+        <span id="winnerUnitLabel">개조</span>
+      </label>
+
+      <label class="ctrl-chip">
+        <span>시간</span>
+        <input type="number" id="durationInput" min="5" max="30" value="10" />
+        <span>초</span>
+      </label>
+    </div>
+
+    <div class="action-buttons">
+      <button type="button" id="primaryActionBtn" class="btn-primary">🏁 경기 시작</button>
+      <button type="button" id="botMenuBtn" class="btn-ghost" title="혼자 테스트할 때 가상 참가자를 채웁니다">🧪 테스트 봇</button>
+      <button type="button" id="settingsBtn" class="btn-ghost" title="상세 설정 및 당첨 내역">⚙️ 옵션/기록</button>
+      <button type="button" id="soundToggleBtn" class="btn-icon" title="효과음 켜기/끄기">🔊</button>
+      <button type="button" id="fullscreenBtn" class="btn-icon" title="전체화면 전환">⛶</button>
+    </div>
+  </header>
+
+  <!-- Dropdown: Test Bot Presets -->
+  <div id="botPopover" class="popover hidden">
+    <div class="popover-title">🧪 내 PC 단독 테스트용 가상 선생님 배치</div>
+    <p class="popover-desc">실제 참가자 탭(<code>/</code>)을 옆에 띄워 직접 참여하면서 수백 명과 대결해 보세요!</p>
+    <button type="button" class="pop-btn" data-bot="morning_230">🌅 첫날 오전 세팅 (225명 · 25개조 자동 배치)</button>
+    <button type="button" class="pop-btn" data-bot="afternoon_44">🌇 첫날 오후 세팅 (43명 · 개인전 자동 배치)</button>
+    <button type="button" class="pop-btn danger" data-bot="clear">🧹 가상 참가자(봇)만 모두 지우기</button>
+  </div>
+
+  <!-- Drawer: Advanced Settings & Past Winners History -->
+  <div id="settingsPopover" class="popover settings-popover hidden">
+    <div class="popover-title">⚙️ 진행 옵션 & 역대 당첨 명단</div>
+    <label class="check-row">
+      <input type="checkbox" id="excludeWinnersCheck" checked />
+      <span>이전 라운드 당첨 조/당첨자 중복 수상 제외</span>
+    </label>
+    <label class="check-row">
+      <input type="checkbox" id="strictAltCheck" checked />
+      <span>좌·우 번갈아 누르기 적용 (해제 시 한쪽 연타도 동일 인정)</span>
+    </label>
+    <div class="Connect-url-box">
+      <div class="small-label">참가자 접속 주소 직접 지정 (클라우드/공유기 주소 변경 시):</div>
+      <input type="text" id="customJoinUrlInput" placeholder="자동 감지 주소 사용 중" />
+    </div>
+    <div class="divider"></div>
+    <div class="history-header">
+      <span>📜 당첨 히스토리</span>
+      <button type="button" id="clearHistoryBtn" class="btn-mini">기록/중복제외 초기화</button>
+    </div>
+    <ul id="historyList" class="history-list">
+      <li class="empty-item">아직 진행된 라운드가 없습니다.</li>
+    </ul>
+    <div class="divider"></div>
+    <button type="button" id="kickAllBtn" class="pop-btn danger">⚠️ 전체 접속자 초기화 (새 타임 시작 시)</button>
+  </div>
+
+  <!-- MAIN STAGE -->
+  <main class="stage">
+    <!-- SECTION 1: LOBBY VIEW -->
+    <section id="lobbySection" class="view-section">
+      <div class="lobby-grid">
+        <!-- Left: Join Guide (Laptop URL + Mobile QR + Gourd Preview) -->
+        <div class="join-card">
+          <div class="festival-badge">🎊 교장·교감 선생님 연수 한마당 🎊</div>
+          <h1 class="hero-title">청백 운동회 <span class="accent-gold">박 터뜨리기</span> 대작전!</h1>
+          <p class="hero-sub" id="lobbyRuleSummary">
+            노트북 <strong>◀(왼쪽) · ▶(오른쪽) 방향키</strong> 또는 스마트폰 화면을 번갈아 눌러 박을 터뜨려 주세요!
+          </p>
+
+          <div class="join-methods">
+            <div class="laptop-guide">
+              <div class="method-tag blue">💻 노트북 참여 (메인)</div>
+              <div class="url-display" id="joinUrlText">http://localhost:3000</div>
+              <div class="url-actions">
+                <button type="button" id="copyUrlBtn" class="btn-small">📋 주소 복사 (연수창/채팅 공유용)</button>
+                <a href="/" target="_blank" class="btn-small outline">↗ 내 PC에서 참가창 열기</a>
+              </div>
+              <div class="key-demo">
+                <span class="keycap">◀</span>
+                <span class="key-plus">교차 연타</span>
+                <span class="keycap">▶</span>
+              </div>
+            </div>
+
+            <div class="qr-guide">
+              <div class="method-tag white">📱 스마트폰 참여</div>
+              <div id="qrContainer" class="qr-box"></div>
+              <div class="qr-caption">카메라로 비추면 바로 입장!</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Attendance Status & Smart N Advisor -->
+        <div class="attendance-card">
+          <div class="card-header-row">
+            <div>
+              <h2 id="attendanceTitle">조별 실시간 입장 현황</h2>
+              <p class="sub-hint" id="advisorBanner">참가자 입장을 기다리고 있습니다...</p>
+            </div>
+            <div class="total-counter">
+              <span class="total-label">총 입장</span>
+              <strong id="totalPlayersCount">0</strong><span class="unit">명</span>
+            </div>
+          </div>
+
+          <div id="lobbyAttendanceGrid" class="lobby-group-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION 2: PLAYING & ENDED GOURD ARENA -->
+    <section id="arenaSection" class="view-section hidden">
+      <div class="arena-top">
+        <!-- Giant Gourd Visual -->
+        <div class="gourd-stage-card">
+          <div class="timer-pill" id="timerPill">
+            <span class="timer-label">남은 시간</span>
+            <strong id="timerValue">10.0</strong><span class="timer-sec">초</span>
+          </div>
+
+          <div class="gourd-wrapper" id="gourdWrapper">
+            <!-- Hanging Pole -->
+            <div class="gourd-pole"></div>
+            <!-- Closed/Cracking Gourd -->
+            <div class="gourd-whole" id="gourdWhole">
+              <div class="gourd-ribbon-left">청군 파이팅</div>
+              <div class="gourd-ribbon-right">백군 파이팅</div>
+              <div class="gourd-sphere">
+                <div class="gourd-stripe"></div>
+                <div class="gourd-emblem">福</div>
+                <svg class="gourd-cracks" id="gourdCracks" viewBox="0 0 200 200">
+                  <path class="crack c1" d="M100,25 L92,65 L110,95 L94,135 L104,175" />
+                  <path class="crack c2" d="M92,65 L58,82 L40,76" />
+                  <path class="crack c3" d="M110,95 L148,112 L168,105" />
+                </svg>
+              </div>
+            </div>
+
+            <!-- Burst Open Gourd + Hanging Scroll Banner -->
+            <div class="gourd-burst hidden" id="gourdBurst">
+              <div class="half-left"></div>
+              <div class="half-right"></div>
+              <div class="burst-banner">
+                <div class="banner-top">🎉 경 축 대 박 🎉</div>
+                <div class="banner-main" id="burstBannerMain">우승 탄생!</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="total-hits-bar">
+            <span>전체 누적 콩주머니 타격:</span>
+            <strong id="arenaTotalHits">0</strong><span>타</span>
+          </div>
+        </div>
+
+        <!-- Right of Gourd: Live Top 5 Podium (During Playing) OR Grand Winner Showcase (When Ended) -->
+        <div class="spotlight-card">
+          <!-- Live Top 5 -->
+          <div id="liveSpotlight">
+            <div class="spotlight-header">
+              <h2>🔥 실시간 선두 TOP 5</h2>
+              <span class="rule-pill" id="activeRulePill">조별 상위 5명 합산</span>
+            </div>
+            <div id="top5List" class="top5-list"></div>
+          </div>
+
+          <!-- Final Winner Presentation -->
+          <div id="winnerSpotlight" class="hidden">
+            <div class="winner-header-row">
+              <div>
+                <span class="winner-prize-badge" id="winnerPrizeBadge">제1라운드 특별 경품</span>
+                <h2 class="winner-headline" id="winnerHeadline">🏆 영광의 우승 조 발표!</h2>
+              </div>
+              <div class="winner-actions">
+                <button type="button" id="extraRaffleBtn" class="btn-accent hidden">🎲 완주자 중 랜덤 추첨하기</button>
+                <button type="button" id="recalcBtn" class="btn-small outline" title="상단 N값이나 당첨 수를 바꾼 뒤 다시 계산">↻ 설정 반영 재집계</button>
+                <button type="button" id="nextRoundBtn" class="btn-primary">다음 라운드 대기실 ▶</button>
+              </div>
+            </div>
+            <div id="winnerCardsArea" class="winner-cards-area"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom Full Board: All 20~30 Groups or 44 Players at a Glance -->
+      <div class="full-board-card">
+        <div class="board-header">
+          <h3 id="fullBoardTitle">전체 조 실시간 현황판</h3>
+          <span id="fullBoardSub" class="board-sub">각 조 상위 5명의 기록이 실시간 합산됩니다</span>
+        </div>
+        <div id="fullStandingsGrid" class="full-standings-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Fullscreen Countdown Overlay (3, 2, 1, 출발!) -->
+  <div id="countdownOverlay" class="countdown-overlay hidden">
+    <div class="countdown-box">
+      <div class="countdown-sub">양손 검지를 방향키(◀ ▶) 또는 화면 버튼 위에 올려주세요!</div>
+      <div class="countdown-num" id="countdownNum">3</div>
+    </div>
+  </div>
+
+  <script src="/qr.js"></script>
+  <script src="/sound.js"></script>
+  <script src="/host.js"></script>
+</body>
+</html>
+
