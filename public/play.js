@@ -56,12 +56,60 @@
   const playerCountdownNum = document.getElementById('playerCountdownNum');
   const toastMsg = document.getElementById('toastMsg');
 
-  // Cheer Chants by Fever Tier
-  const BLUE_CHANTS_BASE = ['영차! 💙', '청군 파이팅!', '잘한다!!', '힘차게 휙!', '가즈아! ◀'];
-  const WHITE_CHANTS_BASE = ['으랏차! 🤍', '백군 파이팅!', '나이스!!', '시원하게 휙!', '최고다! ▶'];
-  const CHANTS_FEVER_1 = ['열정 폭발! 🔥', '손놀림 번개! ⚡', '기세 최고!!', '선생님 멋져요!'];
-  const CHANTS_FEVER_2 = ['초고속 질주!! 🔥🔥', '우승 예감!! 🏆', '못 말린다!! ⚡', '박 흔들린다!!'];
-  const CHANTS_FEVER_3 = ['전설의 타격!! 👑', '신기록 탄생!! 🎉', '완전 대박!! 💥', '교장·교감쌤 최고!! 🏆'];
+  // Rich, natural Cheer Chants by Fever Tier (Sports-day + Speed + Wit + Dynamic Group)
+  const BLUE_CHANTS_BASE = [
+    '청군 이겨라! 💙',
+    '영차! 영차! 🙌',
+    '더 높이! 휙!',
+    '백발백중 명중! 🎯',
+    '착! 착! 리듬 최고! 🎵',
+    '청군 기세 좋다!',
+    '정확히 명중!! 💙'
+  ];
+  const WHITE_CHANTS_BASE = [
+    '백군 이겨라! 🤍',
+    '으랏차! 영차! 🙌',
+    '시원하게 휙!',
+    '백발백중 명중! 🎯',
+    '착! 착! 리듬 최고! 🎵',
+    '백군 기세 좋다!',
+    '나이스 명중!! 🤍'
+  ];
+
+  function getDynamicFeverChants(tier) {
+    const isGroup = latestSnap && latestSnap.config && latestSnap.config.mode === 'group';
+    const gNum = (latestSnap && latestSnap.me && latestSnap.me.group) || selectedGroup || 1;
+
+    if (tier === 1) {
+      return [
+        '기세 완전히 탔다!! 🔥',
+        '부스터 발동!! 🔥',
+        '오늘 컨디션 최고!! ✨',
+        '박에 금 갔어요!! 💥',
+        '손놀림이 예사롭지 않다! ⚡',
+        isGroup ? `${gNum}조 분위기 최고!! 🔥` : '페이스가 아주 좋아요!! ✨'
+      ];
+    }
+    if (tier === 2) {
+      return [
+        '손이 안 보여요!! ⚡',
+        '빛의 속도다!! 🚀',
+        '운동장이 들썩들썩!! 🎊',
+        '숨겨진 에이스 등장!! 🌟',
+        '경품 냄새가 난다!! 🎁',
+        '거의 다 터졌다!! 🎉',
+        isGroup ? `${gNum}조 에이스다!! 🌟` : '선두권 질주 중!! 🏆'
+      ];
+    }
+    return [
+      '국가대표급 손놀림!! 🥇',
+      '박이 살려달래요!! 😆',
+      '신기록 페이스!! 👑',
+      '누가 좀 말려줘요!! 🔥',
+      '마지막까지 영차!! 🙌',
+      isGroup ? `${gNum}조 우승 가자!! 🏆` : '행운의 주인공 예감!! 🎁'
+    ];
+  }
 
   // Local State
   let profile = loadSavedProfile();
@@ -221,15 +269,15 @@
     } else if (tier === 1) {
       feverBadge.classList.remove('hidden');
       feverBadge.textContent = '🔥 FEVER Lv.1';
-      feverLevelText.textContent = '🔥 열정 점화! 콩주머니가 빨라집니다!';
+      feverLevelText.textContent = '🔥 기세 완전히 탔다! 박에 금이 갑니다!';
     } else if (tier === 2) {
       feverBadge.classList.remove('hidden');
       feverBadge.textContent = '🔥🔥 FEVER Lv.2';
-      feverLevelText.textContent = '⚡ 초고속 질주! 황금 박이 흔들립니다!!';
+      feverLevelText.textContent = '⚡ 빛의 속도! 운동장이 들썩들썩!!';
     } else {
       feverBadge.classList.remove('hidden');
       feverBadge.textContent = '👑 MAX FEVER!!';
-      feverLevelText.textContent = '👑 전설의 손놀림! 박 터지기 일보 직전!!';
+      feverLevelText.textContent = '🥇 국가대표급 손놀림! 박 터지기 일보 직전!!';
     }
   }
 
@@ -237,12 +285,16 @@
     const tier = getFeverTier(currentCount);
     let chant = '';
 
-    if (tier === 3) {
-      chant = CHANTS_FEVER_3[currentCount % CHANTS_FEVER_3.length];
-    } else if (tier === 2) {
-      chant = CHANTS_FEVER_2[currentCount % CHANTS_FEVER_2.length];
-    } else if (tier === 1 && currentCount % 2 === 0) {
-      chant = CHANTS_FEVER_1[(currentCount >> 1) % CHANTS_FEVER_1.length];
+    if (tier >= 1) {
+      const pool = getDynamicFeverChants(tier);
+      const idx = side === 'left' ? blueChantIdx++ : whiteChantIdx++;
+      if (tier === 1 && idx % 3 === 1) {
+        chant = side === 'left'
+          ? BLUE_CHANTS_BASE[idx % BLUE_CHANTS_BASE.length]
+          : WHITE_CHANTS_BASE[idx % WHITE_CHANTS_BASE.length];
+      } else {
+        chant = pool[idx % pool.length];
+      }
     } else if (side === 'left') {
       chant = BLUE_CHANTS_BASE[blueChantIdx++ % BLUE_CHANTS_BASE.length];
     } else {
