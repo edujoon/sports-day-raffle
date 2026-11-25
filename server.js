@@ -656,6 +656,10 @@ const MIME_TYPES = {
   '.js': 'application/javascript; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.ico': 'image/x-icon'
 };
 
@@ -701,9 +705,10 @@ function serveStatic(res, filePath) {
       return res.end('Not found');
     }
     const ext = path.extname(safePath).toLowerCase();
+    const isImage = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'].includes(ext);
     res.writeHead(200, {
       'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': isImage ? 'public, max-age=3600' : 'no-cache'
     });
     res.end(content);
   });

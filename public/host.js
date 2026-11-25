@@ -1,13 +1,9 @@
 (function () {
-  // Build bunting garland flags
-  const buntingEl = document.getElementById('buntingFlags');
-  for (let i = 0; i < 42; i++) {
-    const f = document.createElement('div');
-    f.className = `flag c${i % 5}`;
-    buntingEl.appendChild(f);
-  }
-
   // DOM References
+  const hostBlueCheer = document.getElementById('hostBlueCheer');
+  const hostWhiteCheer = document.getElementById('hostWhiteCheer');
+  let cheerBounceToggle = false;
+  let cheerBounceTimer = null;
   const roundBadge = document.getElementById('roundBadge');
   const prizeTitleInput = document.getElementById('prizeTitleInput');
   const modeGroupBtn = document.getElementById('modeGroupBtn');
@@ -690,11 +686,22 @@
       const snap = JSON.parse(ev.data);
       serverClockOffset = snap.serverNow - Date.now();
 
-      // Detect hit increments during playing to shoot beanbags!
+      // Detect hit increments during playing to shoot beanbags & bounce stage mascots!
       if (snap.phase === 'playing' && snap.totalHits > lastTotalHits) {
         const diff = snap.totalHits - lastTotalHits;
         spawnBeanbags(Math.ceil(diff / 4));
         if (Math.random() < 0.65) SoundFX.gourdHit();
+
+        cheerBounceToggle = !cheerBounceToggle;
+        const activeMascot = cheerBounceToggle ? hostBlueCheer : hostWhiteCheer;
+        if (activeMascot) {
+          activeMascot.classList.add('bounce');
+          if (cheerBounceTimer) clearTimeout(cheerBounceTimer);
+          cheerBounceTimer = setTimeout(() => {
+            if (hostBlueCheer) hostBlueCheer.classList.remove('bounce');
+            if (hostWhiteCheer) hostWhiteCheer.classList.remove('bounce');
+          }, 130);
+        }
       }
       lastTotalHits = snap.totalHits;
 

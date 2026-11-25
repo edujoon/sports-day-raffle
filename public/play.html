@@ -3,31 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>청백 운동회 박 터뜨리기 - 참가하기</title>
+  <title>청백 가을 운동회 박 터뜨리기 - 참가하기</title>
+  <link rel="preload" as="image" href="/assets/bg-stadium.jpg" />
+  <link rel="preload" as="image" href="/assets/cheer-blue.png" />
+  <link rel="preload" as="image" href="/assets/cheer-white.png" />
+  <link rel="preload" as="image" href="/assets/gourd-closed.png" />
+  <link rel="preload" as="image" href="/assets/gourd-open.png" />
   <link rel="stylesheet" href="/play.css" />
 </head>
 <body>
-  <!-- Particle & Flying Beanbag Canvas for Player Screen -->
+  <!-- Particle & Flying Beanbag Canvas -->
   <canvas id="playerFxCanvas"></canvas>
 
-  <!-- Top Player Status Bar -->
+  <!-- Compact Top Navigation Bar -->
   <header class="player-header">
     <div class="header-left">
-      <span class="badge-festival">🎊 운동회 추첨</span>
+      <span class="badge-festival">🎊 가을 운동회 박 터뜨리기</span>
       <span id="myProfileBadge" class="profile-badge hidden"></span>
       <span id="feverBadge" class="fever-badge hidden">🔥 FEVER!</span>
     </div>
     <div class="header-right">
       <button type="button" id="editProfileBtn" class="btn-header hidden">조/이름 변경</button>
-      <button type="button" id="playerSoundBtn" class="btn-header">🔊</button>
+      <button type="button" id="playerSoundBtn" class="btn-header" title="효과음 켜기/끄기">🔊</button>
     </div>
   </header>
 
   <!-- STEP 1: JOIN SCREEN -->
   <main id="joinView" class="join-view">
     <div class="join-box">
-      <h1 class="join-title">청백 운동회 박 터뜨리기</h1>
-      <p class="join-subtitle" id="joinModeDesc">앉아 계신 조를 선택하고 성함을 입력해 주세요.</p>
+      <div class="join-hero-row">
+        <img src="/assets/cheer-blue.png" alt="" class="join-mascot" />
+        <div class="join-hero-text">
+          <span class="join-tag">청백 한마음 대축전</span>
+          <h1 class="join-title">가을 운동회 박 터뜨리기!</h1>
+          <p class="join-subtitle" id="joinModeDesc">앉아 계신 조를 선택하고 성함을 입력해 주세요.</p>
+        </div>
+        <img src="/assets/cheer-white.png" alt="" class="join-mascot" />
+      </div>
 
       <!-- Group Selector (Shown in Group Mode) -->
       <div id="groupSelectSection" class="form-block">
@@ -48,209 +60,78 @@
       </div>
 
       <p id="joinErrorMsg" class="error-msg hidden"></p>
-      <button type="button" id="submitJoinBtn" class="btn-join-submit">입장하기 ▶</button>
+      <button type="button" id="submitJoinBtn" class="btn-join-submit">운동장 입장하기 ▶</button>
     </div>
   </main>
 
-  <!-- STEP 2 & 3: PRACTICE + LIVE ARENA VIEW WITH LEFT/RIGHT CHEERING SQUADS -->
+  <!-- STEP 2 & 3: SUNNY STADIUM ARENA VIEW -->
   <main id="arenaView" class="arena-view hidden">
-    <!-- Top Status + Mini Target Gourd -->
-    <div class="status-card" id="statusCard">
-      <div class="status-left-col">
-        <div class="status-top">
-          <span class="phase-pill" id="phasePill">손 풀기 연습 중</span>
-          <span class="timer-display hidden-desktop" id="playerTimerMobile">대기 중</span>
-        </div>
-        <div class="my-score-wrap">
-          <span class="score-caption" id="scoreCaption">연습 타수</span>
-          <strong class="my-score-num" id="myScoreNum">0</strong><span class="score-unit">타</span>
+    <!-- Top Floating Arcade Scoreboard HUD -->
+    <div class="hud-bar" id="statusCard">
+      <div class="hud-score-pill">
+        <span class="score-caption" id="scoreCaption">연습 타수</span>
+        <div class="score-num-row">
+          <strong class="my-score-num" id="myScoreNum">0</strong>
+          <span class="score-unit">타</span>
         </div>
       </div>
 
-      <!-- Center Mini Gourd Target (Beanbags fly here!) -->
-      <div class="mini-gourd-box" id="miniGourdBox" aria-hidden="true">
-        <div class="mini-gourd-pole"></div>
-        <div class="mini-gourd-ball" id="miniGourdBall">
-          <span class="mini-gourd-char">福</span>
-        </div>
-        <span class="mini-gourd-label" id="feverLevelText">박을 맞춰라!</span>
+      <div class="hud-center-pill">
+        <span class="phase-pill" id="phasePill">🖐 손 풀기 연습 모드</span>
+        <div class="timer-display" id="playerTimer">시작 대기 중</div>
       </div>
 
-      <div class="status-right-col">
-        <div class="timer-display desktop-only" id="playerTimer">대기 중</div>
-        <div class="team-stat-wrap" id="teamStatWrap">
-          <div class="stat-line" id="myRankLine">사회자의 시작 신호를 기다려 주세요!</div>
-          <div class="stat-sub" id="guideHintLine">노트북은 키보드 <strong>◀ · ▶ 방향키</strong>, 휴대폰은 아래 버튼을 번갈아 눌러보세요!</div>
+      <div class="hud-rank-pill">
+        <div class="stat-line" id="myRankLine">사회자 시작 신호를 기다려 주세요!</div>
+        <div class="stat-sub" id="guideHintLine">노트북 <strong>◀ · ▶ 방향키</strong> 또는 하단 버튼을 번갈아 누르세요!</div>
+      </div>
+    </div>
+
+    <!-- Open Sunny Field Stage: [Blue Cheer Kids] — [Giant Golden Gourd] — [White Cheer Kids] -->
+    <div class="stadium-stage" id="arenaStageGrid">
+      <!-- LEFT: BLUE CHEERING SQUAD -->
+      <div class="cheer-spot left-spot" id="blueCheerWing">
+        <div class="comic-bubble blue-bubble" id="blueBubble">청군 준비 완료! 💙</div>
+        <div class="mascot-wrap">
+          <img src="/assets/cheer-blue.png" alt="청군 응원단" class="cheer-img" id="blueCheerImg" draggable="false" />
+          <div class="ground-shadow"></div>
+        </div>
+      </div>
+
+      <!-- CENTER: GIANT HANGING GOLDEN GOURD -->
+      <div class="gourd-center-stage" id="miniGourdBox">
+        <div class="sunburst-halo" id="sunburstHalo"></div>
+        <img src="/assets/gourd-closed.png" alt="황금 박" class="center-gourd-img" id="miniGourdBall" draggable="false" />
+        <div class="fever-banner-pill" id="feverLevelText">좌·우 번갈아 눌러 박을 터뜨려 주세요!</div>
+      </div>
+
+      <!-- RIGHT: WHITE CHEERING SQUAD -->
+      <div class="cheer-spot right-spot" id="whiteCheerWing">
+        <div class="comic-bubble white-bubble" id="whiteBubble">백군 준비 완료! 🤍</div>
+        <div class="mascot-wrap">
+          <img src="/assets/cheer-white.png" alt="백군 응원단" class="cheer-img" id="whiteCheerImg" draggable="false" />
+          <div class="ground-shadow"></div>
         </div>
       </div>
     </div>
 
-    <!-- 3-Column Interactive Stage: [Blue Cheer Squad] [Left/Right Pads] [White Cheer Squad] -->
-    <div class="arena-stage-grid" id="arenaStageGrid">
-      <!-- LEFT WING: BLUE STUDENT CHEERING SQUAD -->
-      <aside class="cheer-wing blue-wing" id="blueCheerWing" aria-hidden="true">
-        <div class="cheer-aura"></div>
-        <div class="cheer-bubble" id="blueBubble">청군 준비 완료!</div>
+    <!-- Bottom Tactile 3D Arcade Controller Deck -->
+    <div class="arcade-deck" id="padContainer">
+      <button type="button" id="leftPadBtn" class="arcade-btn blue-arcade next-cue" aria-label="왼쪽 청군 던지기">
+        <span class="keycap-badge">◀</span>
+        <span class="btn-Text-stack">
+          <strong class="btn-main-label">청군 콩주머니!</strong>
+          <small class="btn-sub-label">왼쪽(←) 방향키 또는 터치</small>
+        </span>
+      </button>
 
-        <div class="squad-figures" id="blueSquadFigures">
-          <!-- Back Student with Flag -->
-          <svg class="student-svg flag-student" viewBox="0 0 140 165">
-            <!-- Flag pole & fluttering blue flag -->
-            <g class="arm-flag">
-              <line x1="26" y1="110" x2="18" y2="14" stroke="#92400e" stroke-width="5" stroke-linecap="round" />
-              <polygon points="18,16 86,30 21,54" fill="#2563eb" stroke="#ffffff" stroke-width="2.5" />
-              <text x="30" y="38" fill="#fde047" font-size="13" font-weight="900">필승</text>
-            </g>
-            <!-- Body -->
-            <rect x="46" y="92" width="48" height="50" rx="14" fill="#1d4ed8" stroke="#ffffff" stroke-width="3" />
-            <text x="70" y="123" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="900">청군</text>
-            <!-- Head -->
-            <circle cx="70" cy="64" r="26" fill="#fde68a" stroke="#78350f" stroke-width="2.5" />
-            <!-- Cap -->
-            <path d="M43,58 C43,36 97,36 97,58 Z" fill="#2563eb" stroke="#1e3a8a" stroke-width="2.5" />
-            <ellipse cx="78" cy="57" rx="26" ry="5" fill="#1d4ed8" />
-            <!-- Happy Eyes & Blush -->
-            <path class="eye" d="M58,64 Q62,59 66,64" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
-            <path class="eye" d="M75,64 Q79,59 83,64" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
-            <circle class="cheek" cx="54" cy="71" r="4.5" fill="#fb7185" opacity="0.6" />
-            <circle class="cheek" cx="86" cy="71" r="4.5" fill="#fb7185" opacity="0.6" />
-            <path d="M63,74 Q70,83 77,74" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
-            <!-- Right Arm with Pom-pom -->
-            <g class="arm-right">
-              <line x1="92" y1="102" x2="116" y2="76" stroke="#1d4ed8" stroke-width="9" stroke-linecap="round" />
-              <circle cx="120" cy="70" r="14" fill="#38bdf8" stroke="#0284c7" stroke-width="2" stroke-dasharray="4 2" />
-            </g>
-          </svg>
-
-          <!-- Front Main Cheerleader Student with Headband & Dual Pom-poms -->
-          <svg class="student-svg main-student" viewBox="0 0 160 175">
-            <!-- Left Arm & Blue Pom-pom -->
-            <g class="arm-left">
-              <line x1="52" y1="112" x2="24" y2="82" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
-              <circle cx="20" cy="74" r="17" fill="#3b82f6" stroke="#93c5fd" stroke-width="2.5" stroke-dasharray="5 2" />
-              <circle cx="20" cy="74" r="9" fill="#60a5fa" />
-            </g>
-            <!-- Right Arm & Blue Pom-pom -->
-            <g class="arm-right">
-              <line x1="108" y1="112" x2="136" y2="82" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
-              <circle cx="140" cy="74" r="17" fill="#3b82f6" stroke="#93c5fd" stroke-width="2.5" stroke-dasharray="5 2" />
-              <circle cx="140" cy="74" r="9" fill="#60a5fa" />
-            </g>
-            <!-- Legs -->
-            <line x1="66" y1="146" x2="60" y2="168" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
-            <line x1="94" y1="146" x2="100" y2="168" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
-            <!-- Gym Uniform Body -->
-            <rect x="52" y="98" width="56" height="52" rx="16" fill="#2563eb" stroke="#ffffff" stroke-width="3.5" />
-            <rect x="64" y="112" width="32" height="20" rx="5" fill="#ffffff" />
-            <text x="80" y="127" text-anchor="middle" fill="#1d4ed8" font-size="13" font-weight="900">청승</text>
-            <!-- Head & Hair -->
-            <circle cx="80" cy="64" r="30" fill="#1e293b" />
-            <circle cx="80" cy="68" r="27" fill="#fde68a" stroke="#78350f" stroke-width="2.5" />
-            <!-- Blue Headband (머리띠) -->
-            <rect x="52" y="47" width="56" height="11" rx="5" fill="#2563eb" stroke="#ffffff" stroke-width="2" />
-            <path d="M52,52 L36,45 L40,58 Z" fill="#2563eb" />
-            <!-- Face -->
-            <circle cx="69" cy="68" r="3.6" fill="#0f172a" />
-            <circle cx="91" cy="68" r="3.6" fill="#0f172a" />
-            <circle class="cheek" cx="61" cy="76" r="5" fill="#fb7185" opacity="0.7" />
-            <circle class="cheek" cx="99" cy="76" r="5" fill="#fb7185" opacity="0.7" />
-            <path d="M71,78 Q80,89 89,78 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
-          </svg>
-        </div>
-
-        <div class="wing-caption blue-cap">💙 청군 응원단 (← 키)</div>
-      </aside>
-
-      <!-- CENTER: GIANT TWO-BUTTON / ARROW-KEY INTERACTIVE PAD -->
-      <div class="pad-container" id="padContainer">
-        <button type="button" id="leftPadBtn" class="pad-btn blue-pad next-cue" aria-label="왼쪽 청군 버튼">
-          <span class="pad-team">청 군</span>
-          <span class="pad-arrow">◀</span>
-          <span class="pad-key-hint">키보드 왼쪽(←) 키<br/>또는 화면 터치</span>
-        </button>
-
-        <button type="button" id="rightPadBtn" class="pad-btn white-pad" aria-label="오른쪽 백군 버튼">
-          <span class="pad-team">백 군</span>
-          <span class="pad-arrow">▶</span>
-          <span class="pad-key-hint">키보드 오른쪽(→) 키<br/>또는 화면 터치</span>
-        </button>
-      </div>
-
-      <!-- RIGHT WING: WHITE STUDENT CHEERING SQUAD -->
-      <aside class="cheer-wing white-wing" id="whiteCheerWing" aria-hidden="true">
-        <div class="cheer-aura"></div>
-        <div class="cheer-bubble white-b" id="whiteBubble">백군 준비 완료!</div>
-
-        <div class="squad-figures" id="whiteSquadFigures">
-          <!-- Front Main Cheerleader Student with White Headband & Red-Gold Pom-poms -->
-          <svg class="student-svg main-student" viewBox="0 0 160 175">
-            <!-- Left Arm & White/Gold Pom-pom -->
-            <g class="arm-left">
-              <line x1="52" y1="112" x2="24" y2="82" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
-              <circle cx="20" cy="74" r="17" fill="#ffffff" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="5 2" />
-              <circle cx="20" cy="74" r="9" fill="#fde047" />
-            </g>
-            <!-- Right Arm & White/Gold Pom-pom -->
-            <g class="arm-right">
-              <line x1="108" y1="112" x2="136" y2="82" stroke="#ffffff" stroke-width="10" stroke-linecap="round" />
-              <circle cx="140" cy="74" r="17" fill="#ffffff" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="5 2" />
-              <circle cx="140" cy="74" r="9" fill="#fde047" />
-            </g>
-            <!-- Legs -->
-            <line x1="66" y1="146" x2="60" y2="168" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
-            <line x1="94" y1="146" x2="100" y2="168" stroke="#1e293b" stroke-width="9" stroke-linecap="round" />
-            <!-- White Gym Uniform Body -->
-            <rect x="52" y="98" width="56" height="52" rx="16" fill="#ffffff" stroke="#e11d48" stroke-width="3.5" />
-            <rect x="64" y="112" width="32" height="20" rx="5" fill="#fff1f2" />
-            <text x="80" y="127" text-anchor="middle" fill="#e11d48" font-size="13" font-weight="900">백승</text>
-            <!-- Twin-tail / Hair & Head -->
-            <circle cx="50" cy="62" r="11" fill="#3f2718" />
-            <circle cx="110" cy="62" r="11" fill="#3f2718" />
-            <circle cx="80" cy="64" r="29" fill="#3f2718" />
-            <circle cx="80" cy="68" r="27" fill="#fde68a" stroke="#78350f" stroke-width="2.5" />
-            <!-- White Headband with Red Stripe -->
-            <rect x="52" y="47" width="56" height="11" rx="5" fill="#ffffff" stroke="#e11d48" stroke-width="2.2" />
-            <path d="M108,52 L124,45 L120,58 Z" fill="#ffffff" stroke="#e11d48" stroke-width="1.5" />
-            <!-- Face -->
-            <circle cx="69" cy="68" r="3.6" fill="#0f172a" />
-            <circle cx="91" cy="68" r="3.6" fill="#0f172a" />
-            <circle class="cheek" cx="61" cy="76" r="5" fill="#fb7185" opacity="0.7" />
-            <circle class="cheek" cx="99" cy="76" r="5" fill="#fb7185" opacity="0.7" />
-            <path d="M71,78 Q80,89 89,78 Z" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
-          </svg>
-
-          <!-- Back Student with White Flag -->
-          <svg class="student-svg flag-student" viewBox="0 0 140 165">
-            <!-- Left Arm with Pom-pom -->
-            <g class="arm-left">
-              <line x1="48" y1="102" x2="24" y2="76" stroke="#ffffff" stroke-width="9" stroke-linecap="round" />
-              <circle cx="20" cy="70" r="14" fill="#fde047" stroke="#f59e0b" stroke-width="2" stroke-dasharray="4 2" />
-            </g>
-            <!-- Flag pole & fluttering white flag -->
-            <g class="arm-flag">
-              <line x1="114" y1="110" x2="122" y2="14" stroke="#92400e" stroke-width="5" stroke-linecap="round" />
-              <polygon points="122,16 54,30 119,54" fill="#ffffff" stroke="#e11d48" stroke-width="2.5" />
-              <text x="80" y="38" fill="#e11d48" font-size="13" font-weight="900">필승</text>
-            </g>
-            <!-- Body -->
-            <rect x="46" y="92" width="48" height="50" rx="14" fill="#ffffff" stroke="#cbd5e1" stroke-width="3" />
-            <text x="70" y="123" text-anchor="middle" fill="#0f172a" font-size="14" font-weight="900">백군</text>
-            <!-- Head -->
-            <circle cx="70" cy="64" r="26" fill="#fde68a" stroke="#78350f" stroke-width="2.5" />
-            <!-- White Sports Cap -->
-            <path d="M43,58 C43,36 97,36 97,58 Z" fill="#ffffff" stroke="#94a3b8" stroke-width="2.5" />
-            <ellipse cx="62" cy="57" rx="26" ry="5" fill="#e2e8f0" />
-            <!-- Happy Eyes -->
-            <path class="eye" d="M58,64 Q62,59 66,64" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
-            <path class="eye" d="M75,64 Q79,59 83,64" fill="none" stroke="#1e293b" stroke-width="3" stroke-linecap="round" />
-            <circle class="cheek" cx="54" cy="71" r="4.5" fill="#fb7185" opacity="0.6" />
-            <circle class="cheek" cx="86" cy="71" r="4.5" fill="#fb7185" opacity="0.6" />
-            <path d="M63,74 Q70,83 77,74" fill="#ef4444" stroke="#7f1d1d" stroke-width="2" />
-          </svg>
-        </div>
-
-        <div class="wing-caption white-cap">🤍 백군 응원단 (→ 키)</div>
-      </aside>
+      <button type="button" id="rightPadBtn" class="arcade-btn white-arcade" aria-label="오른쪽 백군 던지기">
+        <span class="btn-Text-stack">
+          <strong class="btn-main-label">백군 콩주머니!</strong>
+          <small class="btn-sub-label">오른쪽(→) 방향키 또는 터치</small>
+        </span>
+        <span class="keycap-badge white-key">▶</span>
+      </button>
     </div>
   </main>
 
@@ -258,6 +139,7 @@
   <section id="resultView" class="result-view hidden">
     <!-- Winner Certificate -->
     <div id="winnerCertCard" class="cert-card winner hidden">
+      <img src="/assets/gourd-open.png" alt="박 터짐 축하" class="result-gourd-img" />
       <div class="cert-ribbon">🏆 경 품 당 첨 확 인 증 🏆</div>
       <div class="cert-prize" id="certPrizeTitle">제1라운드 특별 경품</div>
       <h2 class="cert-congrats">축하합니다! 당첨되셨습니다!</h2>
@@ -271,6 +153,7 @@
 
     <!-- Non-Winner Friendly Summary -->
     <div id="nonWinnerCard" class="cert-card normal hidden">
+      <img src="/assets/gourd-open.png" alt="라운드 종료" class="result-gourd-img small" />
       <div class="normal-badge" id="normalPrizeTitle">제1라운드 결과 발표</div>
       <h2 class="normal-headline">열정적인 참여 감사합니다! 👏</h2>
       <p class="normal-winner-announce" id="normalWinnerAnnounce">우승 발표 중...</p>
@@ -281,7 +164,7 @@
 
   <!-- Countdown Modal on Player Device -->
   <div id="playerCountdown" class="player-countdown hidden">
-    <div class="p-cd-label">준비하세요! 번갈아 누르기!</div>
+    <div class="p-cd-label">양손 검지를 ◀ · ▶ 키(또는 하단 버튼) 위에 올려주세요!</div>
     <div class="p-cd-num" id="playerCountdownNum">3</div>
   </div>
 

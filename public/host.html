@@ -3,17 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>청백 운동회 박 터뜨리기 - 사회자 전광판</title>
+  <title>청백 가을 운동회 박 터뜨리기 - 사회자 전광판</title>
+  <link rel="preload" as="image" href="/assets/bg-stadium.jpg" />
+  <link rel="preload" as="image" href="/assets/gourd-closed.png" />
+  <link rel="preload" as="image" href="/assets/gourd-open.png" />
+  <link rel="preload" as="image" href="/assets/cheer-blue.png" />
+  <link rel="preload" as="image" href="/assets/cheer-white.png" />
   <link rel="stylesheet" href="/host.css" />
 </head>
 <body>
   <!-- Confetti & Flying Beanbags Canvas -->
   <canvas id="fxCanvas"></canvas>
-
-  <!-- Festive Sports Day Bunting Garland (만국기) -->
-  <div class="bunting-bar" aria-hidden="true">
-    <div class="bunting-flags" id="buntingFlags"></div>
-  </div>
 
   <!-- Top Host Control Header -->
   <header class="host-topbar">
@@ -117,8 +117,14 @@
     <!-- SECTION 1: LOBBY VIEW -->
     <section id="lobbySection" class="view-section">
       <div class="lobby-grid">
-        <!-- Left: Join Guide (Laptop URL + Mobile QR + Gourd Preview) -->
+        <!-- Left: Sunny Sports-Day Hero & Join Guide -->
         <div class="join-card">
+          <div class="lobby-art-banner">
+            <img src="/assets/cheer-blue.png" alt="" class="lobby-mascot" />
+            <img src="/assets/gourd-closed.png" alt="" class="lobby-gourd" />
+            <img src="/assets/cheer-white.png" alt="" class="lobby-mascot" />
+          </div>
+
           <div class="festival-badge">🎊 교장·교감 선생님 연수 한마당 🎊</div>
           <h1 class="hero-title">청백 운동회 <span class="accent-gold">박 터뜨리기</span> 대작전!</h1>
           <p class="hero-sub" id="lobbyRuleSummary">
@@ -135,7 +141,7 @@
               </div>
               <div class="key-demo">
                 <span class="keycap">◀</span>
-                <span class="key-plus">교차 연타</span>
+                <span class="key-plus">방향키 교차 연타</span>
                 <span class="keycap">▶</span>
               </div>
             </div>
@@ -169,7 +175,7 @@
     <!-- SECTION 2: PLAYING & ENDED GOURD ARENA -->
     <section id="arenaSection" class="view-section hidden">
       <div class="arena-top">
-        <!-- Giant Gourd Visual -->
+        <!-- Giant Gourd Stage with Illustrated Sprites -->
         <div class="gourd-stage-card">
           <div class="timer-pill" id="timerPill">
             <span class="timer-label">남은 시간</span>
@@ -177,32 +183,25 @@
           </div>
 
           <div class="gourd-wrapper" id="gourdWrapper">
-            <!-- Hanging Pole -->
-            <div class="gourd-pole"></div>
-            <!-- Closed/Cracking Gourd -->
+            <div class="gourd-glow-ring" id="gourdGlowRing"></div>
+
+            <!-- Closed/Shaking Illustrated Golden Gourd -->
             <div class="gourd-whole" id="gourdWhole">
-              <div class="gourd-ribbon-left">청군 파이팅</div>
-              <div class="gourd-ribbon-right">백군 파이팅</div>
-              <div class="gourd-sphere">
-                <div class="gourd-stripe"></div>
-                <div class="gourd-emblem">福</div>
-                <svg class="gourd-cracks" id="gourdCracks" viewBox="0 0 200 200">
-                  <path class="crack c1" d="M100,25 L92,65 L110,95 L94,135 L104,175" />
-                  <path class="crack c2" d="M92,65 L58,82 L40,76" />
-                  <path class="crack c3" d="M110,95 L148,112 L168,105" />
-                </svg>
-              </div>
+              <img src="/assets/gourd-closed.png" alt="황금 박" class="host-gourd-img" />
             </div>
 
-            <!-- Burst Open Gourd + Hanging Scroll Banner -->
+            <!-- Burst Open Illustrated Golden Gourd + Celebration Ribbon -->
             <div class="gourd-burst hidden" id="gourdBurst">
-              <div class="half-left"></div>
-              <div class="half-right"></div>
+              <img src="/assets/gourd-open.png" alt="박 터짐" class="host-gourd-open-img" />
               <div class="burst-banner">
                 <div class="banner-top">🎉 경 축 대 박 🎉</div>
                 <div class="banner-main" id="burstBannerMain">우승 탄생!</div>
               </div>
             </div>
+
+            <!-- Flanking Cheer Squad Mascots on Host Stage -->
+            <img src="/assets/cheer-blue.png" alt="" class="stage-side-cheer left" id="hostBlueCheer" />
+            <img src="/assets/cheer-white.png" alt="" class="stage-side-cheer right" id="hostWhiteCheer" />
           </div>
 
           <div class="total-hits-bar">
@@ -264,4 +263,3 @@
   <script src="/host.js"></script>
 </body>
 </html>
-
