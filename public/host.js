@@ -227,9 +227,9 @@
       const sec = (remMs / 1000).toFixed(1);
       timerValue.textContent = sec;
       timerPill.classList.toggle('urgent', remMs <= 3000);
-    } else if (latestSnap.phase === 'ended') {
+    } else if (latestSnap.phase === 'settling' || latestSnap.phase === 'ended') {
       timerValue.textContent = '0.0';
-      timerPill.classList.remove('urgent');
+      timerPill.classList.toggle('urgent', latestSnap.phase === 'settling');
     }
   }
 
@@ -405,8 +405,8 @@
     primaryActionBtn.classList.remove('stop-mode', 'reset-mode');
     if (snap.phase === 'lobby') {
       primaryActionBtn.textContent = '🏁 경기 시작';
-    } else if (snap.phase === 'countdown' || snap.phase === 'playing') {
-      primaryActionBtn.textContent = '⏹ 즉시 종료';
+    } else if (snap.phase === 'countdown' || snap.phase === 'playing' || snap.phase === 'settling') {
+      primaryActionBtn.textContent = snap.phase === 'settling' ? '⏳ 최종 집계 중...' : '⏹ 즉시 종료';
       primaryActionBtn.classList.add('stop-mode');
     } else {
       primaryActionBtn.textContent = '🔄 다음 라운드 대기실';
@@ -493,10 +493,10 @@
     gourdBurst.classList.toggle('hidden', !isEnded);
 
     if (!isEnded) {
-      gourdWhole.classList.toggle('shake', snap.phase === 'playing' && snap.totalHits > 0);
+      gourdWhole.classList.toggle('shake', (snap.phase === 'playing' || snap.phase === 'settling') && snap.totalHits > 0);
       // Crack progression based on time elapsed
       const now = Date.now() + serverClockOffset;
-      const progress = Math.max(0, Math.min(1, (now - snap.gameStartAt) / (c.durationSec * 1000)));
+      const progress = snap.phase === 'settling' ? 1 : Math.max(0, Math.min(1, (now - snap.gameStartAt) / (c.durationSec * 1000)));
       gourdWhole.classList.toggle('crack-1', progress >= 0.28);
       gourdWhole.classList.toggle('crack-2', progress >= 0.58);
       gourdWhole.classList.toggle('crack-3', progress >= 0.82);
@@ -535,10 +535,11 @@
         .map(g => {
           const isTop1 = g.rank === 1 && g.score > 0 && !isEnded;
           const isWinner = isEnded && winSet.has(g.group);
+          const rankLabel = isWinner ? '🏆우승' : g.excluded ? '수상완료' : g.rank ? `${g.rank}위` : '-';
           return `<div class="mini-tile ${isTop1 ? 'is-top1' : ''} ${isWinner ? 'is-winner' : ''} ${g.excluded && !isWinner ? 'is-excluded' : ''}">
             <div class="mini-top">
               <span class="mini-name">${g.group}조</span>
-              <span class="mini-rank">${isWinner ? '🏆우승' : g.rank ? `${g.rank}위` : '제외'}</span>
+              <span class="mini-rank">${rankLabel}</span>
             </div>
             <div class="mini-bottom">
               <span class="mini-meta">상위${g.countedMembers}/${g.memberCount}명</span>
@@ -586,10 +587,11 @@
           const isTop1 = p.rank === 1 && p.score > 0 && !isEnded;
           const isWinner = isEnded && winIds.has(p.id);
           const label = p.school ? `${p.school} ${p.name}` : p.name;
+          const rankLabel = isWinner ? '🎉당첨' : p.excluded ? '수상완료' : p.completed ? '완주' : p.rank ? `${p.rank}위` : '-';
           return `<div class="mini-tile ${isTop1 ? 'is-top1' : ''} ${isWinner ? 'is-winner' : ''} ${p.excluded && !isWinner ? 'is-excluded' : ''}">
             <div class="mini-top">
               <span class="mini-name">${escapeHtml(label)}</span>
-              <span class="mini-rank">${isWinner ? '🎉당첨' : p.completed ? '완주' : p.rank ? `${p.rank}위` : '제외'}</span>
+              <span class="mini-rank">${rankLabel}</span>
             </div>
             <div class="mini-bottom">
               <span class="mini-meta">${p.completed ? '✅목표달성' : '도전중'}</span>

@@ -56,8 +56,10 @@
 
   let practiceScore = 0;
   let liveScore = 0;
+  let lastSyncedScore = 0;
+  let syncInFlight = false;
+  let flushedAtEnd = false;
   let lastAcceptedSide = null; // 'left' | 'right' | null
-  let pendingSync = false;
   let eventSource = null;
   let toastTimer = null;
   let celebratedWinKey = '';
@@ -204,6 +206,13 @@
   function handleActionInput(side) {
     if (!joinedServer || editingProfile) return;
     if (!latestSnap) return;
+    if (latestSnap.phase !== 'lobby' && latestSnap.phase !== 'playing') return;
+
+    const now = Date.now() + serverClockOffset;
+    if (latestSnap.phase === 'playing' && now >= latestSnap.gameEndAt) {
+      flushScoreToServer();
+      return;
+    }
 
     SoundFX.unlock();
     animatePadPress(side);
@@ -226,12 +235,8 @@
       practiceScore++;
       myScoreNum.textContent = practiceScore;
     } else if (latestSnap.phase === 'playing') {
-      const now = Date.now() + serverClockOffset;
-      if (now <= latestSnap.gameEndAt + 150) {
-        liveScore++;
-        myScoreNum.textContent = liveScore;
-        pendingSync = true;
-      }
+      liveScore++;
+      myScoreNum.textContent = liveScore;
     }
   }
 
@@ -276,23 +281,36 @@
   // Throttled Score Sync to Server (Every 150ms when dirty)
   // ------------------------------------------------------------
   async function flushScoreToServer() {
-    if (!pendingSync || !profile.playerId) return;
-    pendingSync = false;
+    if (!profile.playerId || liveScore <= lastSyncedScore || syncInFlight) return;
+    if (latestSnap && latestSnap.phase !== 'playing' && latestSnap.phase !== 'settling') return;
+
+    const targetScore = liveScore;
+    syncInFlight = true;
     try {
-      await fetch('/api/hit', {
+      const res = await fetch('/api/hit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           playerId: profile.playerId,
-          score: liveScore
+          score: targetScore
         })
       });
+      const data = await res.json();
+      if (data && data.ok && !data.ignored) {
+        lastSyncedScore = Math.max(lastSyncedScore, data.score || targetScore);
+      }
     } catch (_) {
-      pendingSync = true;
+      // Will retry on next interval
+    } finally {
+      syncInFlight = false;
+      // If more taps accumulated while fetch was in flight, flush immediately
+      if (liveScore > lastSyncedScore && latestSnap && (latestSnap.phase === 'playing' || latestSnap.phase === 'settling')) {
+        flushScoreToServer();
+      }
     }
   }
 
-  setInterval(flushScoreToServer, 150);
+  setInterval(flushScoreToServer, 120);
 
   // Live timer animation loop on player screen
   function tickPlayerTimer() {
@@ -312,6 +330,13 @@
       if (latestSnap.phase === 'playing') {
         const remMs = Math.max(0, latestSnap.gameEndAt - now);
         playerTimer.textContent = `남은 시간 ${(remMs / 1000).toFixed(1)}초`;
+        if (remMs === 0 && !flushedAtEnd) {
+          flushedAtEnd = true;
+          flushScoreToServer();
+        }
+      } else if (latestSnap.phase === 'settling') {
+        playerTimer.textContent = '최종 기록 집계 중...';
+        flushScoreToServer();
       } else if (latestSnap.phase === 'lobby') {
         playerTimer.textContent = '시작 대기 중';
       }
@@ -345,7 +370,7 @@
 
     const showJoin = !joinedServer || editingProfile;
     joinView.classList.toggle('hidden', !showJoin);
-    editProfileBtn.classList.toggle('hidden', showJoin || latestSnap.phase === 'playing');
+    editProfileBtn.classList.toggle('hidden', showJoin || latestSnap.phase === 'playing' || latestSnap.phase === 'settling');
     myProfileBadge.classList.toggle('hidden', showJoin);
 
     if (showJoin) {
@@ -370,7 +395,7 @@
   }
 
   function renderArenaScreen(snap, me) {
-    const isPlaying = snap.phase === 'playing' || snap.phase === 'countdown';
+    const isPlaying = snap.phase === 'playing' || snap.phase === 'countdown' || snap.phase === 'settling';
     statusCard.classList.toggle('live-playing', isPlaying);
 
     if (snap.phase === 'lobby') {
@@ -384,7 +409,7 @@
       guideHintLine.innerHTML =
         '노트북은 <strong>◀ · ▶ 방향키</strong>, 휴대폰은 <strong>아래 청·백 버튼</strong>을 번갈아 눌러 연습해 보세요!';
     } else {
-      phasePill.textContent = '🔥 본 경기 진행 중! 박을 터뜨려라!';
+      phasePill.textContent = snap.phase === 'settling' ? '⏳ 최종 기록 집계 중...' : '🔥 본 경기 진행 중! 박을 터뜨려라!';
       scoreCaption.textContent = '내 타격';
       liveScore = Math.max(liveScore, me.score || 0);
       myScoreNum.textContent = liveScore;
@@ -408,7 +433,9 @@
   function renderResultScreen(snap, me) {
     const res = snap.resultSummary;
     const fullName = me.school ? `${me.school} ${me.name}` : me.name;
-    const finalScore = Math.max(liveScore, me.score || 0);
+    // Use authoritative server score so player screen & projector screen always match 100%
+    const finalScore = me.score !== undefined ? me.score : liveScore;
+    liveScore = finalScore;
 
     if (me.isWinner) {
       winnerCertCard.classList.remove('hidden');
@@ -461,14 +488,18 @@
       if (lastPhase !== snap.phase) {
         if (snap.phase === 'countdown') {
           liveScore = 0;
+          lastSyncedScore = 0;
+          flushedAtEnd = false;
           lastAcceptedSide = null;
           updateNextCueUI();
         } else if (snap.phase === 'lobby') {
           practiceScore = 0;
           liveScore = 0;
+          lastSyncedScore = 0;
+          flushedAtEnd = false;
           lastAcceptedSide = null;
           updateNextCueUI();
-        } else if (snap.phase === 'ended') {
+        } else if (snap.phase === 'settling') {
           flushScoreToServer();
         }
         lastPhase = snap.phase;

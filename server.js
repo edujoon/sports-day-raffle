@@ -12,7 +12,7 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 // ------------------------------------------------------------
 const state = {
   roundNumber: 1,
-  phase: 'lobby', // 'lobby' | 'countdown' | 'playing' | 'ended'
+  phase: 'lobby', // 'lobby' | 'countdown' | 'playing' | 'settling' | 'ended'
   config: {
     mode: 'group',            // 'group' | 'individual'
     groupCount: 24,           // 2 ~ 40 groups
@@ -42,6 +42,7 @@ const playerClients = new Map(); // res -> playerId
 
 let countdownTimer = null;
 let gameEndTimer = null;
+let settleTimer = null;
 let broadcastInterval = null;
 let botInterval = null;
 let dirty = false;
@@ -65,11 +66,17 @@ function getLocalLanIp() {
 // ------------------------------------------------------------
 function computeGroupStandings() {
   const { groupCount, topN, excludePastWinners } = state.config;
+  const currentWinGroups = new Set(
+    state.phase === 'ended' && state.currentResult && state.currentResult.winningGroupNums
+      ? state.currentResult.winningGroupNums
+      : []
+  );
   const groups = [];
   for (let g = 1; g <= groupCount; g++) {
+    const wonBeforeThisRound = state.pastWinnerGroups.has(g) && !currentWinGroups.has(g);
     groups.push({
       group: g,
-      excluded: excludePastWinners && state.pastWinnerGroups.has(g),
+      excluded: excludePastWinners && wonBeforeThisRound,
       alreadyWon: state.pastWinnerGroups.has(g),
       memberCount: 0,
       countedMembers: 0,
@@ -127,7 +134,7 @@ function computeGroupStandings() {
   const rankMap = new Map();
   let currentRank = 1;
   for (const g of ranked) {
-    if (!g.excluded) {
+    if (!g.excluded && g.score > 0) {
       rankMap.set(g.group, currentRank++);
     } else {
       rankMap.set(g.group, null);
@@ -152,12 +159,18 @@ function computeGroupStandings() {
   };
 }
 
-function computeIndividualStandings() {
+function computeIndividualStandings(ignoreCurrentWinExemption = false) {
   const { excludePastWinners, targetTouches } = state.config;
+  const currentWinPlayers = new Set(
+    !ignoreCurrentWinExemption && state.phase === 'ended' && state.currentResult && state.currentResult.winningPlayerIds
+      ? state.currentResult.winningPlayerIds
+      : []
+  );
   const list = [];
   for (const p of state.players.values()) {
     const alreadyWon = state.pastWinnerPlayers.has(p.id);
-    const excluded = excludePastWinners && alreadyWon;
+    const wonBeforeThisRound = alreadyWon && !currentWinPlayers.has(p.id);
+    const excluded = excludePastWinners && wonBeforeThisRound;
     list.push({
       id: p.id,
       name: p.name,
@@ -183,7 +196,7 @@ function computeIndividualStandings() {
 
   let rank = 1;
   for (const item of list) {
-    item.rank = item.excluded ? null : rank++;
+    item.rank = !item.excluded && item.score > 0 ? rank++ : null;
   }
 
   const eligibleCompleted = list.filter(p => !p.excluded && p.completed);
@@ -226,7 +239,8 @@ function finalizeRoundResult(forceMode) {
     };
   } else {
     const selectionType = forceMode || state.config.indivSelection;
-    const { players } = computeIndividualStandings();
+    // When drawing an extra raffle right after rank winners, exclude those rank winners too
+    const { players } = computeIndividualStandings(Boolean(forceMode));
     let winners = [];
 
     if (selectionType === 'raffle') {
@@ -462,6 +476,10 @@ function clearGameTimers() {
     clearTimeout(gameEndTimer);
     gameEndTimer = null;
   }
+  if (settleTimer) {
+    clearTimeout(settleTimer);
+    settleTimer = null;
+  }
   if (botInterval) {
     clearInterval(botInterval);
     botInterval = null;
@@ -504,11 +522,19 @@ function startCountdown() {
 
 function finishGame() {
   clearGameTimers();
-  if (state.phase === 'ended') return;
-  state.phase = 'ended';
-  finalizeRoundResult();
+  if (state.phase === 'ended' || state.phase === 'settling') return;
+  // Enter a 550ms score-settling window so all in-flight client packets arrive BEFORE locking winners
+  state.phase = 'settling';
   dirty = true;
   broadcastAll(true);
+
+  settleTimer = setTimeout(() => {
+    settleTimer = null;
+    state.phase = 'ended';
+    finalizeRoundResult();
+    dirty = true;
+    broadcastAll(true);
+  }, 550);
 }
 
 function resetToLobby(advanceRound = true) {
@@ -772,13 +798,12 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 404, { ok: false, error: '입장 정보가 없습니다.' });
       }
 
-      // Allow hits only during 'playing' (plus tiny 350ms grace window for in-flight final packet)
-      const now = Date.now();
-      const withinGrace = state.phase === 'playing' || (state.phase === 'ended' && now - state.gameEndAt < 350);
-      if (!withinGrace || state.phase === 'lobby' || state.phase === 'countdown') {
+      // Accept hits only during 'playing' and the 550ms 'settling' flush window; strictly lock once 'ended'
+      if (state.phase !== 'playing' && state.phase !== 'settling') {
         return sendJson(res, 200, { ok: true, ignored: true, score: player.score });
       }
 
+      const now = Date.now();
       const clientScore = Math.max(0, Math.min(400, parseInt(body.score, 10) || 0));
       if (clientScore > player.score) {
         const delta = clientScore - player.score;
@@ -848,7 +873,7 @@ const server = http.createServer(async (req, res) => {
       const action = body.action;
 
       if (action === 'start') {
-        if (state.phase !== 'playing' && state.phase !== 'countdown') {
+        if (state.phase === 'lobby' || state.phase === 'ended') {
           startCountdown();
         }
       } else if (action === 'stop') {
