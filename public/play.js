@@ -10,10 +10,11 @@
   const editProfileBtn = document.getElementById('editProfileBtn');
   const playerSoundBtn = document.getElementById('playerSoundBtn');
 
+  const playerHeader = document.querySelector('.player-header');
   const joinView = document.getElementById('joinView');
   const joinModeDesc = document.getElementById('joinModeDesc');
   const groupSelectSection = document.getElementById('groupSelectSection');
-  const groupButtonsGrid = document.getElementById('groupButtonsGrid');
+  const groupSelect = document.getElementById('groupSelect');
   const schoolInput = document.getElementById('schoolInput');
   const nameInput = document.getElementById('nameInput');
   const joinErrorMsg = document.getElementById('joinErrorMsg');
@@ -460,25 +461,22 @@
     toastTimer = setTimeout(() => toastMsg.classList.add('hidden'), 1400);
   }
 
-  function renderGroupButtons(count) {
+  function renderGroupOptions(count) {
     if (selectedGroup > count) selectedGroup = 1;
     renderedGroupCount = count;
-    groupButtonsGrid.innerHTML = '';
+    groupSelect.innerHTML = '';
     for (let g = 1; g <= count; g++) {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = `grp-choice-btn ${g === selectedGroup ? 'selected' : ''}`;
-      btn.textContent = `${g}조`;
-      btn.addEventListener('click', () => {
-        selectedGroup = g;
-        groupButtonsGrid.querySelectorAll('.grp-choice-btn').forEach((el, idx) => {
-          el.classList.toggle('selected', idx + 1 === selectedGroup);
-        });
-      });
-      groupButtonsGrid.appendChild(btn);
+      const opt = document.createElement('option');
+      opt.value = String(g);
+      opt.textContent = `${g}조`;
+      if (g === selectedGroup) opt.selected = true;
+      groupSelect.appendChild(opt);
     }
   }
-  renderGroupButtons(24);
+  groupSelect.addEventListener('change', () => {
+    selectedGroup = parseInt(groupSelect.value, 10) || 1;
+  });
+  renderGroupOptions(24);
 
   if (profile.school) schoolInput.value = profile.school;
   if (profile.name) nameInput.value = profile.name;
@@ -725,7 +723,7 @@
       : '개인전 모드입니다. 성함을 입력하고 바로 입장해 주세요!';
 
     if (isGroup && renderedGroupCount !== c.groupCount) {
-      renderGroupButtons(c.groupCount);
+      renderGroupOptions(c.groupCount);
     }
 
     if (joinedServer && !latestSnap.me) {
@@ -733,6 +731,7 @@
     }
 
     const showJoin = !joinedServer || editingProfile;
+    if (playerHeader) playerHeader.classList.toggle('logged-in', !showJoin);
     joinView.classList.toggle('hidden', !showJoin);
     editProfileBtn.classList.toggle('hidden', showJoin || latestSnap.phase === 'playing' || latestSnap.phase === 'settling');
     myProfileBadge.classList.toggle('hidden', showJoin);
